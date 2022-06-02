@@ -6,8 +6,8 @@ FILE_NAME = 'config.ini'
 PATH = os.getcwd() + '/' + FILE_NAME;
 
 class config_manager:
-    # Just a small function to write the file
-    def write_file(self, *args):
+
+    def write_file(self):
         config.write(open(PATH, 'w'))
 
     def conf_exists(self):
@@ -33,6 +33,7 @@ class config_manager:
         print(config.items())
         return config.items()
     
+    # return phone number sections for the cli
     def select_section(self):
         config.read(PATH)
         phones = []
@@ -40,11 +41,17 @@ class config_manager:
             phones.append(config[section]['phone'])
         return phones
     
+    # return the first section name from a phone number
     def select_section_from_number(self, phone):
         config.read(PATH)
         for section in config.sections():
             if phone in config[section]['phone']:
                 return section
+
+    def get_datas_from_config(self, section):
+        config.read(PATH)
+        # return config[section]
+        return {k:v for k,v in config[section].items()}
 
 # if __name__ == '__main__':
 
