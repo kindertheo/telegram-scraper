@@ -5,6 +5,8 @@ from config import config_manager
 import inquirer
 from inquirer.themes import GreenPassion
 
+from telegram import telegram
+
 def interactive_select_config(choices):
     q = [
         inquirer.List('config',
@@ -46,7 +48,10 @@ def scrape(ctx):
     print("hello world")
     conf = ctx.forward(select_config)
     ids = config_manager().get_datas_from_config(conf)
-    telegram.run(ids)
+    telegram(api_id=ids['api_id'],
+            api_hash=ids['api_hash'],
+            phone=ids['phone']
+    ).run()
 
 @main.command()
 def hello():
