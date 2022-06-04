@@ -2,9 +2,14 @@ from telethon.sync import TelegramClient
 from pprint import pprint
 
 
-api_id = 0
-api_hash = ''
-phone = ''
+# api_id = 0
+# api_hash = ''
+# phone = ''
+
+api_id = 12209102
+api_hash = 'd891d23e6c60510b501ea2a16a3cc9d2'
+phone = '+33774573971'
+
 client = TelegramClient(phone, api_id, api_hash)
 
 client.connect()
@@ -14,6 +19,7 @@ if not client.is_user_authorized():
 
 from telethon.tl.functions.messages import GetDialogsRequest
 from telethon.tl.types import InputPeerEmpty
+
 chats = []
 last_date = None
 chunk_size = 200
