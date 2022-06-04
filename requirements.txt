@@ -1,7 +1,12 @@
 blessed==1.19.1
 click==8.1.3
+click-default-group==1.2.2
 inquirer==2.9.2
+pyaes==1.6.1
+pyasn1==0.4.8
 python-editor==1.0.4
 readchar==3.0.5
+rsa==4.8
 six==1.16.0
+Telethon==1.24.0
 wcwidth==0.2.5
