@@ -8,10 +8,12 @@ from telethon.tl.functions.messages import GetDialogsRequest
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 from telethon.tl.types import InputPeerEmpty
+from telethon.tl.types import Channel
 from telethon import functions, types
 import re
 from string import ascii_lowercase
-import csv
+import csv_manager
+from invit import invit_users_with_list
 
 class telegram:
 
@@ -20,7 +22,8 @@ class telegram:
         self.api_hash = api_hash
         self.phone = phone
         self.client = TelegramClient(self.phone, self.api_id, self.api_hash)
-
+        self._connect()
+        self.client.get_dialogs()
 
     def _connect(self):
         self.client.connect()
@@ -28,11 +31,14 @@ class telegram:
             self.client.send_code_request(self.phone)
             self.client.sign_in(self.phone, input('Enter the code: '))
 
-    def run(self):
+    def get_users(self):
         self._connect()
         channels = self.get_channels()
         for chan in channels:
-            self.get_users_from_channel(chan)
+            try:
+                self.get_users_from_channel(chan)
+            except Exception as e:
+                print(chan, e)
 
     def find_channel():
         pass
@@ -40,10 +46,20 @@ class telegram:
     def find_groups():
         pass
 
-    def get_users_from_channel(self, channel: telethon.tl.types.Channel):
+    def invit_users(self, channel, user_list):
+        channel = self.get_channel_by_name(channel)
+        print(channel)
+        print(type(channel))
+        invit_users_with_list(client=self.client, channel=channel, user_list=user_list)
+
+    def get_users_from_channel(self, channel: str):
+        channel = self.client.get_entity(channel)
+        if isinstance(channel, list):
+            channel = channel[0]
+            print(type(channel))
         queryKey = list(ascii_lowercase)
         all_participants = []
-        # channel = 'The Moon Group'
+
         chan_id = channel.id
         for key in queryKey:
             offset = 0
@@ -55,36 +71,55 @@ class telegram:
                 ))
                 if not participants.users:
                     break
-                i = 0
                 for user in participants.users:
                     try:
                         if re.findall(r"\b[a-zA-Z]", user.first_name)[0].lower() == key:
                             all_participants.append(user)
-                            print(i)
-                            i = i + 1            
                     except Exception as e:
-                        print(e)
                         pass
 
                 offset += len(participants.users)
-                self.write_users_to_csv(channel.title, participants.users)
+                # csv_manager.write_users_to_csv(channel.title, participants.users)
+                csv_manager.write_users_to_csv_dictwriter(channel.title, participants.users)
 
                 print(offset)
+            print(len(all_participants))
 
-    def get_channels(self):
-        chats = []
+
+    def get_channel_by_name(self, name):
+        channels_name = self.get_channels_entity()
+        for cname in channels_name:
+            if cname.title.lower() == name.lower():
+                print("cname", type(channels_name[0]))
+                return cname
+
+    def get_channels_entity(self):
         last_date = None
         chunk_size = 200
         
-        result = self.client(GetDialogsRequest(
+        return self.client(GetDialogsRequest(
                     offset_date=last_date,
                     offset_id=0,
                     offset_peer=InputPeerEmpty(),
                     limit=chunk_size,
                     hash = 0
-                ))
+                )).chats
 
-        chats.extend(result.chats)
+    def get_channels(self):
+        # chats = []
+        # last_date = None
+        # chunk_size = 200
+        
+        # result = self.client(GetDialogsRequest(
+        #             offset_date=last_date,
+        #             offset_id=0,
+        #             offset_peer=InputPeerEmpty(),
+        #             limit=chunk_size,
+        #             hash = 0
+        #         ))
+
+        # chats.extend(result.chats)
+        chats = self.get_channels_entity()
         channels = []
         for chat in chats:
             try:
@@ -92,23 +127,7 @@ class telegram:
             except:
                 continue
         
-        return chats;
-
-    def write_users_to_csv(self, channel: telethon.tl.types.Channel, users):
-        pprint(channel)
-        with open(channel + '.csv', 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=",", quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for user in users:
-                print("write", user)
-                try:
-                    writer.writerow({ user.id, 
-                    user.access_hash, 
-                    user.first_name, 
-                    user.last_name, 
-                    user.username, 
-                    user.phone })
-                except Exception as e:
-                    print(e)
+        return channels
 
     def iter_participants_from_channel(self, channel):
         try:
@@ -116,11 +135,9 @@ class telegram:
             channel_connect = self.client.get_entity(channel.id)
             channel_full_info = self.client(GetFullChannelRequest(channel=channel_connect))
             user_count = channel_full_info.full_chat.participants_count
-            print(user_count)
+            print("Number of users : ", user_count)
             user_list = self.client.iter_participants(channel)
 
-            # user_count = self.client.participant_count(chat)
-            # print(user_list)
             i = 0
             for user in user_list:
                 if not isinstance(user, (types.ChannelParticipantBanned, types.ChannelParticipantLeft)):
@@ -132,10 +149,3 @@ class telegram:
 
         except (ChatAdminRequiredError, ChannelPrivateError):
             print(channel.title, "no permission")
-
-
-        # user_list = self.client.iter_dialogs()
-        # print(user_list)
-        # for user in user_list:
-        #     if user.is_channel:
-        #         print(user.entity)
